@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Custos — Resource groups</title><style>body{font:16px system-ui;margin:32px;color:#152438}label{display:block;margin:12px 0}input,textarea,select,button{font:inherit;padding:6px}table{border-collapse:collapse;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid #ddd}textarea{width:90%}.error{color:#b02020}</style></head><body>
+<h1>Resource groups</h1><a href="{{ url_for('index') }}">Workspace</a> · <a href="{{ url_for('roles.mappings') }}">User/group role mappings</a>
+{% if error %}<p role="alert" class="error">{{ error }}</p>{% endif %}{% if success %}<p role="status">{{ success }}</p>{% endif %}
+<h2>Create a resource group</h2><form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Name <input name="name" required maxlength="200" value="{{ request.form.get('name','') }}"></label>
+<label>Tenant <select name="tenant" required>{% for t in tenants %}<option value="{{ t.id }}" {% if request.form.get('tenant') == t.id %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>
+<label>Membership <select name="mode"><option value="dynamic" {% if request.form.get('mode') != 'static' %}selected{% endif %}>Dynamic rules</option><option value="static" {% if request.form.get('mode') == 'static' %}selected{% endif %}>Static VM selection</option></select></label>
+<h3>Dynamic rules</h3><p>Fill at least one rule. All filled rules must match. IP rules check every discovered IP; they do not grant access across tenant boundaries.</p>
+<label>VM-name regex <input name="name_regex" maxlength="256" placeholder="^APP-(WEB|DB)-[0-9]+$" value="{{ request.form.get('name_regex','') }}"></label>
+<label>Subnet (CIDR) <input name="subnet" placeholder="10.20.30.0/24" value="{{ request.form.get('subnet','') }}"></label>
+<label>IP range start <input name="range_start" placeholder="10.20.30.10" value="{{ request.form.get('range_start','') }}"></label>
+<label>IP range end <input name="range_end" placeholder="10.20.30.100" value="{{ request.form.get('range_end','') }}"></label>
+<details><summary>Advanced JSON rules</summary><p>Optional. Overrides the fields above; supports backend ID and tags too.</p><textarea name="rule" rows="4" placeholder='{"name_regex":"^APP-","subnet":"10.20.30.0/24"}'>{{ request.form.get('rule','') }}</textarea></details>
+<h3>Static members</h3><p>Used only for static groups. Choose VMs belonging to the selected tenant.</p>
+{% for vm in vms %}<label><input type="checkbox" name="vm" value="{{ vm.id }}" {% if vm.id in request.form.getlist('vm') %}checked{% endif %}>{{ vm.dns_name or vm.inventory_name }} · tenant {{ vm.tenant_id }}</label>{% endfor %}
+<button name="action" value="preview">Preview members</button> <button name="action" value="create">Create group</button></form>
+{% if preview is not none %}<h2>Preview: {{ preview|length }} members</h2><ul>{% for vm in preview %}<li>{{ vm.dns_name or vm.inventory_name }}</li>{% else %}<li>No matching VMs</li>{% endfor %}</ul>{% endif %}
+<h2>Existing groups</h2><table><thead><tr><th>Name</th><th>Mode</th><th>Members</th><th>Rules</th></tr></thead><tbody>{% for group in groups %}<tr><td>{{ group.name }}</td><td>{{ group.mode }}</td><td>{{ counts[group.id] }}</td><td><code>{{ group.rule|tojson }}</code></td></tr>{% endfor %}</tbody></table></body></html>

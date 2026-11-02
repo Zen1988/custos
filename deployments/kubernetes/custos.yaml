@@ -1,0 +1,60 @@
+# Supply an external HA PostgreSQL endpoint and the referenced Secrets before deployment.
+# Image name is a placeholder for your built/published Custos image.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custos-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: custos-web}
+  template:
+    metadata:
+      labels: {app: custos-web}
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: web
+          image: custos:local
+          ports: [{containerPort: 8080}]
+          envFrom:
+            - secretRef: {name: custos-runtime}
+            - secretRef: {name: custos-rbac-admin}
+          env:
+            - {name: CUSTOS_CLUSTER_MODE, value: 'true'}
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {cpu: '2', memory: 1Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custos-web
+spec:
+  selector: {app: custos-web}
+  ports: [{port: 8080, targetPort: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custos-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: custos-worker}
+  template:
+    metadata:
+      labels: {app: custos-worker}
+    spec:
+      terminationGracePeriodSeconds: 180
+      containers:
+        - name: worker
+          image: custos:local
+          command: [python, -m, custos.worker]
+          envFrom:
+            - secretRef: {name: custos-runtime}
+          env:
+            - {name: CUSTOS_CLUSTER_MODE, value: 'true'}
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {cpu: '2', memory: 1Gi}

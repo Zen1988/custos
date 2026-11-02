@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>{{ vm_name }} — Console</title>
+{% if provider == 'vcenter' %}<link rel="stylesheet" href="{{ url_for('console.asset',provider=provider,filename='wmks-all.css') }}"><script src="{{ url_for('console.asset',provider=provider,filename='jquery.min.js') }}"></script><script src="{{ url_for('console.asset',provider=provider,filename='jquery-ui.min.js') }}"></script><script src="{{ url_for('console.asset',provider=provider,filename='wmks.min.js') }}"></script>{% endif %}
+<style>body{margin:0;background:#152438;color:white;font:16px system-ui}header{padding:12px}#screen{height:calc(100vh - 60px);width:100vw}</style></head><body><header>{{ vm_name }} · <span id="status">Connecting</span> · <a href="/" style="color:white">Close console</a></header><div id="screen"></div>
+<script type="module">
+const endpoint = new URL('/console/ws/' + {{ console_id|tojson }}, location.href); endpoint.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const status = document.getElementById('status');
+{% if provider == 'vcenter' %}
+const consoleClient = WMKS.createWMKS('screen', {});
+consoleClient.register(WMKS.CONST.Events.CONNECTION_STATE_CHANGE, (event,data) => { status.textContent = data.state; });
+consoleClient.connect(endpoint.toString());
+window.addEventListener('pagehide',()=>consoleClient.disconnect());
+{% else %}
+const {default:RFB} = await import({{ url_for('console.asset',provider=provider,filename='core/rfb.js')|tojson }});
+const consoleClient = new RFB(document.getElementById('screen'), endpoint.toString());
+consoleClient.scaleViewport = true;
+consoleClient.addEventListener('connect',()=>status.textContent='Connected');
+consoleClient.addEventListener('disconnect',()=>status.textContent='Disconnected');
+window.addEventListener('pagehide',()=>consoleClient.disconnect());
+{% endif %}
+</script></body></html>

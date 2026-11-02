@@ -17,7 +17,7 @@ A project team may need to **open a VM console, start a VM, stop a VM, or create
 
 Direct access to a virtualization management platform can expose users to more inventory, interfaces, privileges, and administrative functions than their work requires. Misconfigured roles, accidental privilege grants, compromised credentials, and vulnerabilities in management interfaces can increase the impact of that exposure.
 
-**Custos deliberately offers only four operations.** Its value lies not in providing an elaborate interface, but in placing a tightly controlled authorization and integration boundary between project users and powerful virtualization management systems.
+**Custos deliberately offers a limited set of operations.** Its value lies in placing a tightly controlled authorization and integration boundary between project users and powerful virtualization management systems. The updated scope includes status, console, start, graceful stop, guest reboot, hard reset and snapshot creation; see the [database and access design](docs/access-model.md).
 
 > A simple portal at the edge. A powerful management plane kept behind it.
 
@@ -64,13 +64,16 @@ Custos provides an alternate network pattern:
 
 **Important limitations:** Encryption alone does not enforce least privilege. An API service account with broad permissions, a broken authorization check, or an unsafe console proxy can still create a serious exposure. Network isolation, independently enforced authorization, credential isolation, and tightly scoped vendor permissions are mandatory. Console access may enable sensitive guest-level interaction; it is not equivalent to harmless read-only viewing.
 
-## Scope: only four user-facing actions
+## Scope: controlled user-facing actions
 
 | Action | Behavior | Required safeguards |
 |---|---|---|
 | **Console** | Open an interactive VM console through a controlled broker | VM-specific entitlement; ephemeral session authorization; guest-level security considerations |
 | **Start** | Power on an authorized VM | Verify current state, authorization, policy, and provider result |
 | **Stop** | Prefer graceful guest OS shutdown where supported | Verify tools/guest capability; forced power-off is a separate restricted decision |
+| **Reboot** | Request a graceful guest OS reboot | Separate permission; guest capability and outcome checks |
+| **Reset** | Hard reset the VM | Separate explicit permission and confirmation; provider task verification |
+| **View status** | View authorized VM identity, DNS/IP and status | Tenant-scoped visibility and freshness indicators |
 | **Create Snapshot** | Request a VM snapshot | Policy limits, allowed VM state, capacity checks, retention and cleanup ownership |
 
 Read-only inventory details and operation status support these functions. Custos **does not** offer general VM administration, privilege management, VM deletion, resource resizing, network configuration, ISO mounting, virtual media access, or arbitrary provider API calls.
@@ -196,6 +199,45 @@ Open **http://127.0.0.1:8080**. The development server binds to localhost by def
 When the new repository is initialized, migrate the prototype's templates and assets into `src/custos/web/` and `branding/`.
 
 ## Implementation roadmap
+
+Start with the [step-by-step Linux setup guide](docs/setup-guide.md), also available
+to Custos administrators at `/admin/setup-guide`. It covers prerequisites, PostgreSQL,
+nginx/Apache HTTPS, Linux services, backend integration, RBAC, consoles and clustering.
+
+An isolated console WebSocket broker and PostgreSQL worker leadership are implemented.
+See [console and clustering](docs/console-and-clustering.md) for required vendor
+assets, Nutanix console-version limitations and clustered deployment configuration.
+
+Nutanix Prism Central AHV v4.0 support and portal integration maintenance are now
+implemented, including encrypted archive/restore and backend failure blocking.
+See [Nutanix and lifecycle setup](docs/nutanix-and-integrations.md).
+External audit forwarding uses [RFC 5424 syslog](docs/syslog.md) with a durable outbox.
+
+Simple Read-only/Operator role mappings and global Custos admin access now use a
+separate encrypted RBAC store. See [RBAC setup](docs/rbac.md) before starting the
+web app or worker: the new RBAC key, database and bootstrap are required.
+
+Tenant resource groups support static VM lists and dynamic VM-name regex, IPv4/IPv6
+ranges/subnets, backend and tag rules. See [resource groups](docs/resource-groups.md)
+for the admin page and examples.
+
+Backend sync schedules, a persistent VM action queue with cross-user VM locks, and
+web-viewable audit records are implemented. See [operations, schedules and audit](docs/operations-and-audit.md)
+for the required background worker and guest-reboot completion limitations.
+
+Custos administrators can now onboard vCenter through a connection, certificate,
+credential/privilege and scoped inventory wizard. See [backend onboarding](docs/backend-onboarding.md)
+for admin provisioning, encryption-key setup and current limits.
+
+Local account creation/login and scoped LDAP/AD identity imports are implemented.
+See [identity and PSM setup](docs/identity-setup.md) for filter examples and commands.
+The PSM login surface supports a dedicated Custos account; deployed CyberArk
+connector validation and live inventory/actions remain pending. Local and scoped
+AD/LDAP login redirect directly to a database-backed, permission-filtered workspace.
+
+Implementation has started with a packaged, operator-only read-only vCenter adapter.
+See [vCenter integration setup and staged plan](docs/vcenter-integration.md).
+Targets are vCenter 8.0 U3 and 9.x; live compatibility verification is pending.
 
 - [x] Product concept and four-action scope
 - [x] Branding and standalone visual UI prototype

@@ -1,0 +1,9 @@
+.git
+.venv
+**/__pycache__
+*.db
+*.sqlite
+.env*
+*.pem
+*.key
+tests

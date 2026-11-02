@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Custos — Add backend</title>
+<style>body{font:16px system-ui;background:#f3f5f8;color:#152438;margin:0}main{max-width:1000px;margin:40px auto;padding:32px;background:white;border-radius:12px}label{display:block;margin:16px 0}input,select,button{font:inherit;padding:8px}input[type=url],input[type=text],input[type=password]{width:80%}button{cursor:pointer}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:10px;border-bottom:1px solid #ddd}.error{color:#a01818}code{overflow-wrap:anywhere}</style></head><body><main>
+<h1>Connect a hypervisor</h1><p>Connection → Certificate trust → API and privileges → Scope and sync</p>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+{% macro token() %}<input type="hidden" name="csrf" value="{{ csrf }}">{% endmacro %}
+{% if draft.stage == 'connection' %}
+<p>Add a backend to import infrastructure into Custos.</p><form method="post">{{ token() }}<input type="hidden" name="action" value="connect">
+<label>Hypervisor <select name="provider" id="provider"><option value="vcenter">VMware vCenter</option><option value="nutanix">Nutanix Prism Central (AHV)</option></select></label>
+<label>Version/API <select name="version" id="version"><option>8.0 U3</option><option>9.x</option><option>Nutanix AHV v4.0</option></select></label>
+<script>document.getElementById('provider').addEventListener('change',e=>{document.getElementById('version').value=e.target.value==='nutanix'?'Nutanix AHV v4.0':'8.0 U3';});</script>
+<label>Backend name <input type="text" name="name" required maxlength="200"></label>
+<label>HTTPS address <input type="url" name="endpoint" placeholder="https://vcenter.example.com" required></label><button>Test connection</button></form>
+{% elif draft.stage == 'certificate' %}
+<h2>Certificate approval required</h2><p>{{ draft.data.endpoint }}</p><p>The certificate is not trusted by the server. Verify its fingerprint independently before accepting.</p>
+<dl><dt>Subject</dt><dd>{{ draft.data.certificate.subject }}</dd><dt>Issuer</dt><dd>{{ draft.data.certificate.issuer }}</dd><dt>Expires</dt><dd>{{ draft.data.certificate.expires }}</dd><dt>SHA-256</dt><dd><code>{{ draft.data.certificate.fingerprint }}</code></dd></dl>
+<form method="post">{{ token() }}<input type="hidden" name="action" value="trust"><label><input type="checkbox" name="accept" value="yes" required> Trust this certificate for this backend in Custos</label><button>Accept certificate</button></form>
+{% elif draft.stage == 'credentials' %}
+<h2>Connection verified</h2><p>{{ draft.data.endpoint }} · {{ draft.data.version }}</p>
+<form method="post">{{ token() }}<input type="hidden" name="action" value="api"><label>Service account <input name="username" type="text" required autocomplete="off"></label>
+<label>Password <input name="password" type="password" required autocomplete="new-password" maxlength="1024"></label><button>Test API and check privileges</button></form>
+{% elif draft.stage == 'scope' %}
+<h2>API connected · {{ draft.data.report.version }}</h2><p>Select VM scope. Checks do not execute VM actions.</p>
+{% if draft.data.provider == 'nutanix' %}<p role="alert">Inventory read verified. Nutanix action privileges are unverified: this adapter does not infer effective action access from a role name or successful inventory read. Validate the scoped operator role in Prism Central. Actual action requests enforce Prism permissions and record denials.</p>
+{% else %}<p>Missing actions block import. Provider privileges: ConsoleInteract, PowerOn, PowerOff, Reset under VirtualMachine.Interact; snapshot requires VirtualMachine.State.CreateSnapshot; inventory requires System.View and System.Read.</p>{% endif %}
+<form method="post">{{ token() }}<input type="hidden" name="action" value="credentials"><button>Change credentials or repeat API test</button></form>
+<form method="post">{{ token() }}<input type="hidden" name="action" value="sync">
+<label>Import into tenant <select name="tenant" required>{% for tenant in tenants %}<option value="{{ tenant.id }}">{{ tenant.name }}</option>{% endfor %}</select></label>
+<label>Inventory sync schedule <select name="frequency"><option value="5min">Every 5 minutes</option><option value="hourly" selected>Hourly</option><option value="daily">Daily (every 24 hours)</option><option value="weekly">Weekly</option><option value="manual">Manual only</option></select></label>
+<table><thead><tr><th>Sync</th><th>VM</th><th>Verified</th><th>Missing / unverified privileges</th></tr></thead><tbody>
+{% for vm in draft.data.report.vms %}<tr><td><input type="checkbox" name="vm" value="{{ vm.uid }}" aria-label="Select {{ vm.name }}"></td><td>{{ vm.name }}<br><small>{{ vm.uid }}</small></td><td>{% for action, allowed in vm.capabilities.items() %}{% if allowed %}{{ action }} {% endif %}{% endfor %}</td><td>{% for action, allowed in vm.capabilities.items() %}{% if allowed is none %}{{ action }} (unverified) {% elif not allowed %}<strong>{{ action }} (missing)</strong> {% endif %}{% endfor %}</td></tr>{% endfor %}</tbody></table>
+{% if draft.data.provider == 'nutanix' %}<label><input type="checkbox" name="privilege_ack" value="yes" required> I verified the Nutanix service-account role and VM scope in Prism Central; action privileges have not been preflight-verified by Custos</label>{% endif %}
+<label><input type="checkbox" name="accept" value="yes" required> Accept the capability report and save the service credential encrypted</label><p>Sync attempts DNS resolution for every discovered IPv4/IPv6 address. No resource access is granted to tenants by importing.</p>
+<button>Accept and sync selected VMs</button></form>
+<h3>Create a tenant</h3><form method="post">{{ token() }}<input type="hidden" name="action" value="tenant"><label>Tenant name <input type="text" name="tenant_name" required maxlength="200"></label><button>Create tenant</button></form>
+{% endif %}
+<hr><form method="post">{{ token() }}<input type="hidden" name="action" value="restart"><button>Restart setup</button></form><p><a href="{{ url_for('index') }}">Back to workspace</a></p></main></body></html>

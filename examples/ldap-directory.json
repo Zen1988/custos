@@ -1,0 +1,13 @@
+{
+  "id": "corporate-ldap",
+  "name": "Corporate LDAP",
+  "endpoint": "ldap://ldap.example.com:389",
+  "base_dn": "dc=example,dc=com",
+  "bind_username": "cn=custos-sync,ou=services,dc=example,dc=com",
+  "credential_ref": "env:CUSTOS_LDAP_BIND_PASSWORD",
+  "kind": "ldap",
+  "user_filter": "(|(uid=alice)(uid=bob))",
+  "group_filter": "(cn=custos-users)",
+  "ca_bundle": null,
+  "max_entries": 10000
+}

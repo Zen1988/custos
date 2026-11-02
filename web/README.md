@@ -1,19 +1,14 @@
-# Custos HTML5 + Python (Flask) UI prototype
+# Custos web development
 
-## Run locally
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-Open http://127.0.0.1:8080
+The web app requires a local or synced directory account and session secret. Run the CLI and web
+server from the repository root to use the same database path.
 
-This is **not** a production application. It has mock data and NO login, API calls, database tables, authorization, console bridge, snapshot processing, audit storage or security hardening. Do not expose this demo publicly.
+See [identity setup](../docs/identity-setup.md) for installation, database creation,
+local accounts, directory sync, HTTPS and CyberArk PSM connector configuration.
 
-## Suggested production persistence
-- SQLite for a single process, local demo or prototype only.
-- PostgreSQL for Kubernetes multi-replica operation, concurrent writes, audit history and durable task state.
-- Do not use the SQLite DB file on a shared multi-writer PVC.
-
-Production implementation still needs OIDC authentication, resource authorization, CSRF safeguards, rate limits, gateway separation, secure secrets, task persistence and vendor adapter version validation.
+The workspace shows only authorized, fresh VM records from the Custos database.
+PSM can submit injected credentials to `/login` (local) or
+`/login/directory/<directory-id>` (AD/LDAP), then land directly on the workspace.
+Scheduled backend inventory sync and Start/Stop/Reboot/Reset/snapshot actions require
+the separate [background worker](../docs/operations-and-audit.md). The console broker
+and production deployment remain pending.

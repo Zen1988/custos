@@ -1,0 +1,13 @@
+{
+  "id": "corporate-ad",
+  "name": "Corporate Active Directory",
+  "endpoint": "ldaps://dc01.example.com:636",
+  "base_dn": "DC=example,DC=com",
+  "bind_username": "svc_custos_sync@example.com",
+  "credential_ref": "env:CUSTOS_AD_BIND_PASSWORD",
+  "kind": "ad",
+  "user_filter": "(memberOf:1.2.840.113556.1.4.1941:=CN=Custos-Users,OU=Groups,DC=example,DC=com)",
+  "group_filter": "(cn=Custos-Users)",
+  "ca_bundle": null,
+  "max_entries": 10000
+}
