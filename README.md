@@ -200,6 +200,11 @@ When the new repository is initialized, migrate the prototype's templates and as
 
 ## Implementation roadmap
 
+Download the [complete application ZIP](https://github.com/Zen1988/custos/archive/refs/heads/main.zip)
+for transfer to a server. See [transfer/install instructions](TRANSFER.md); the web
+folder alone is not the full Python application. A commit-specific ZIP/checksum can
+also be created using `python scripts/package_release.py`.
+
 Start with the [step-by-step Linux setup guide](docs/setup-guide.md), also available
 to Custos administrators at `/admin/setup-guide`. It covers prerequisites, PostgreSQL,
 nginx/Apache HTTPS, Linux services, backend integration, RBAC, consoles and clustering.
